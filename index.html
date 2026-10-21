@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ouça as candidaturas · Rodada ReVisão</title>
+<meta name="description" content="Workshop Alcitá Advisory · Rodada ReVisão: áudios das candidaturas por mesa.">
+<meta name="theme-color" content="#0D1B2A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0D1B2A; --bg:#F7F7F3; --card:#FFFFFF; --muted:#5B6573; --line:#E3E6EA;
+    --coord:#2A9D8F; --ger:#E08A3C; --exec:#E5574A;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--navy);font-family:'Open Sans',system-ui,sans-serif;font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  header{background:var(--navy);color:#F7F7F3;padding:28px 20px 30px}
+  .wrap{max-width:560px;margin:0 auto}
+  .kicker{font-family:Montserrat,sans-serif;font-weight:600;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#7FD1C6;margin:0 0 10px}
+  h1{font-family:Montserrat,sans-serif;font-weight:700;font-size:30px;line-height:1.15;margin:0 0 12px}
+  header p{margin:0;color:#C9D6DF;font-size:16px}
+  main{padding:20px 16px 8px}
+  .mesa{background:var(--card);border-radius:var(--radius);box-shadow:0 1px 3px rgba(13,27,42,.08),0 6px 18px rgba(13,27,42,.06);margin:0 0 14px;overflow:hidden;border-left:8px solid var(--c)}
+  .mesa > button.toggle{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;justify-content:space-between;padding:18px 20px;cursor:pointer;min-height:64px}
+  .mesa > button.toggle:focus-visible{outline:3px solid var(--c);outline-offset:-3px;border-radius:var(--radius)}
+  .mesa-nome{font-family:Montserrat,sans-serif;font-weight:700;font-size:22px}
+  .mesa-nome span{color:var(--c)}
+  .chev{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 14%,white);color:var(--c);transition:transform .2s}
+  .mesa.open .chev{transform:rotate(180deg)}
+  .painel{display:none;padding:0 16px 18px}
+  .mesa.open .painel{display:block}
+  .player{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;transition:box-shadow .2s,border-color .2s}
+  .player.destaque{border-color:var(--c);box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 22%,transparent)}
+  .p-top{display:flex;align-items:center;gap:14px}
+  .play{all:unset;flex:none;width:56px;height:56px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;cursor:pointer}
+  .play:focus-visible{outline:3px solid var(--navy);outline-offset:3px}
+  .play[disabled]{background:#C5CBD2;cursor:not-allowed}
+  .play svg{width:24px;height:24px}
+  .p-info{flex:1;min-width:0}
+  .p-nome{font-family:Montserrat,sans-serif;font-weight:600;font-size:17px;display:flex;align-items:center;gap:8px}
+  .ok{display:none;color:var(--c);font-size:16px}
+  .player.ouvido .ok{display:inline}
+  .tempo{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;margin:12px 0 0;accent-color:var(--c);height:28px}
+  .aviso{display:none;margin:10px 0 0;font-weight:600;font-size:15px;color:var(--c)}
+  .player.destaque .aviso{display:block}
+  .erro{margin:8px 0 0;font-size:14px;color:var(--muted)}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:10px 16px 36px;font-family:Montserrat,sans-serif;letter-spacing:.12em;text-transform:uppercase}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="kicker">Workshop Alcitá Advisory · Rodada ReVisão</p>
+    <h1>Ouça as candidaturas</h1>
+    <p>Use fone ou o celular no ouvido, sem viva voz. Escolha sua mesa, ouça primeiro a Candidatura A e depois a Candidatura B. Ao terminar, volte para o canhoto.</p>
+  </div>
+</header>
+
+<main class="wrap" id="mesas"></main>
+
+<footer>Workshop Alcitá Advisory</footer>
+
+<script>
+  // Mapeamento editável: qual caso cada mesa ouve e a cor do nível.
+  const MESAS = {
+    1: { caso: 1, cor: "#2A9D8F" },
+    2: { caso: 2, cor: "#2A9D8F" },
+    3: { caso: 2, cor: "#E08A3C" },
+    4: { caso: 3, cor: "#E08A3C" },
+    5: { caso: 3, cor: "#E5574A" },
+    6: { caso: 4, cor: "#E5574A" }
+  };
+  const arquivo = (caso, letra) => `audio/caso${caso}-${letra}.mp3`;
+
+  const ICON_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>';
+  const ICON_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor"/></svg>';
+  const fmt = s => { if (!isFinite(s)) return "0:00"; s = Math.round(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+
+  const todos = [];
+  const container = document.getElementById("mesas");
+
+  function criarPlayer(mesaEl, caso, letra) {
+    const el = document.createElement("div");
+    el.className = "player";
+    el.innerHTML = `
+      <div class="p-top">
+        <button class="play" type="button" aria-label="Tocar Candidatura ${letra}">${ICON_PLAY}</button>
+        <div class="p-info">
+          <div class="p-nome">Candidatura ${letra} <span class="ok" aria-label="ouvido até o fim">✓</span></div>
+          <div class="tempo"><span class="atual">0:00</span> / <span class="total">carregando…</span></div>
+        </div>
+      </div>
+      <input type="range" min="0" max="100" step="0.1" value="0" aria-label="Posição do áudio da Candidatura ${letra}">
+      ${letra === "B" ? '<p class="aviso">Agora ouça a Candidatura B</p>' : ""}`;
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audio.src = arquivo(caso, letra);
+    const btn = el.querySelector(".play"), barra = el.querySelector("input"),
+          atual = el.querySelector(".atual"), total = el.querySelector(".total");
+    let arrastando = false;
+
+    audio.addEventListener("loadedmetadata", () => { total.textContent = fmt(audio.duration); });
+    audio.addEventListener("error", () => {
+      btn.disabled = true; total.textContent = "--:--";
+      if (!el.querySelector(".erro")) el.insertAdjacentHTML("beforeend", '<p class="erro">Áudio ainda não disponível. Se precisar, leia a transcrição impressa.</p>');
+    });
+    audio.addEventListener("timeupdate", () => {
+      atual.textContent = fmt(audio.currentTime);
+      if (!arrastando && audio.duration) barra.value = (audio.currentTime / audio.duration) * 100;
+    });
+    audio.addEventListener("play", () => { btn.innerHTML = ICON_PAUSE; btn.setAttribute("aria-label", `Pausar Candidatura ${letra}`); });
+    audio.addEventListener("pause", () => { btn.innerHTML = ICON_PLAY; btn.setAttribute("aria-label", `Tocar Candidatura ${letra}`); });
+    audio.addEventListener("ended", () => {
+      el.classList.add("ouvido");
+      if (letra === "A") mesaEl.querySelectorAll(".player")[1].classList.add("destaque");
+      if (letra === "B") el.classList.remove("destaque");
+    });
+    btn.addEventListener("click", () => {
+      if (audio.paused) { todos.forEach(a => a !== audio && a.pause()); audio.play().catch(() => {}); }
+      else audio.pause();
+    });
+    barra.addEventListener("input", () => { arrastando = true; if (audio.duration) atual.textContent = fmt(audio.duration * barra.value / 100); });
+    barra.addEventListener("change", () => { if (audio.duration) audio.currentTime = audio.duration * barra.value / 100; arrastando = false; });
+
+    todos.push(audio);
+    return el;
+  }
+
+  function abrir(mesaEl) {
+    document.querySelectorAll(".mesa.open").forEach(m => {
+      if (m !== mesaEl) { m.classList.remove("open"); m.querySelector(".toggle").setAttribute("aria-expanded", "false"); }
+    });
+    const aberto = mesaEl.classList.toggle("open");
+    mesaEl.querySelector(".toggle").setAttribute("aria-expanded", String(aberto));
+    if (!aberto) todos.forEach(a => a.pause());
+  }
+
+  Object.entries(MESAS).forEach(([n, cfg]) => {
+    const mesa = document.createElement("section");
+    mesa.className = "mesa";
+    mesa.id = "mesa-" + n;
+    mesa.style.setProperty("--c", cfg.cor);
+    mesa.innerHTML = `
+      <button class="toggle" type="button" aria-expanded="false" aria-controls="painel-${n}">
+        <span class="mesa-nome">Mesa <span>${n}</span></span>
+        <span class="chev" aria-hidden="true">▾</span>
+      </button>
+      <div class="painel" id="painel-${n}"></div>`;
+    const painel = mesa.querySelector(".painel");
+    painel.appendChild(criarPlayer(mesa, cfg.caso, "A"));
+    painel.appendChild(criarPlayer(mesa, cfg.caso, "B"));
+    mesa.querySelector(".toggle").addEventListener("click", () => abrir(mesa));
+    container.appendChild(mesa);
+  });
+
+  // Abre direto a mesa do QR code: ?mesa=3
+  const m = new URLSearchParams(location.search).get("mesa");
+  if (m && MESAS[m]) {
+    const alvo = document.getElementById("mesa-" + m);
+    abrir(alvo);
+    alvo.scrollIntoView({ block: "start" });
+  }
+</script>
+</body>
+</html>
